@@ -2,5 +2,5 @@
 export { default } from "next-auth/middleware";
 
 export const config = {
-    matcher: ["/profile", "/chat"],
+    matcher: ["/profile", "/chat"],         // All protected Routes...
 };

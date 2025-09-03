@@ -3,10 +3,10 @@ import SignUpForm from "@/components/SignUpForm";
 
 export default function LoginPage() {
     return (
-        <main>
-            <h1>Login</h1>
+        <main style={{width:'30%'}}>
+            <h2>Login (Manual)</h2>
             <SignInForm />
-            <h2>Or Sign Up</h2>
+            <h2>SignUp/Register (Manual)</h2>
             <SignUpForm />
         </main>
     );

@@ -1,4 +1,4 @@
-/* src/app/globals.css */
+/* src/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,5 +13,5 @@ html,
 body {
     font-family: sans-serif;
     background-color: #f9f9f9;
-    color: #333;
+    color: #505050;
 }

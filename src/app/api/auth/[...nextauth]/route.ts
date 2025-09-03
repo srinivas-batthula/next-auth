@@ -24,7 +24,6 @@ function toNextAuthUser(userDoc: IUser): NextAuthUser {
         id: (userDoc._id as unknown as { toString(): string }).toString() ?? undefined,
         name: userDoc.name ?? undefined,
         email: userDoc.email ?? undefined,
-        image: userDoc.image ?? undefined,
     };
 }
 
@@ -95,7 +94,6 @@ export const authOptions: NextAuthOptions = {
                 await UserModel.create({
                     email: user.email,
                     name: user.name,
-                    image: user.image,
                 });
             }
             return true;

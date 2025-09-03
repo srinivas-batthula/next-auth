@@ -1,5 +1,5 @@
 // app/layout.tsx
-import "./globals.css";
+import "../globals.css";
 import { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { Providers } from "./providers";
@@ -7,15 +7,15 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-    title: "NextAuth Mini App",
-    description: "Scalable Next.js + NextAuth + MongoDB Auth Setup",
+    title: "NextAuth & ChatBots",
+    description: "Scalable Next.js + NextAuth + MongoDB Auth & Chatbot LLM's Setup",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="en">
-            <body className={`${inter.className} bg-gray-50 text-gray-900`} style={{display:'flex', justifyContent:'center', alignContent:'center', flexDirection:'column'}}>
-                {/* Wrap in Providers so NextAuth session is available globally */}
+            <body className={`${inter.className} bg-gray-50 text-gray-900`} style={{width:'100%', height:'100vh', display:'flex', justifyContent:'center', alignContent:'center', flexDirection:'column'}}>
+                {/* Wrap the 'whole App' in 'Providers', So 'NextAuth Session' is available 'globally'... */}
                 <Providers>
                     <div className="min-h-screen flex flex-col">
                         <header className="w-full py-4 shadow-sm bg-white">

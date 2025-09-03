@@ -12,11 +12,14 @@ export default function SignInForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
-            <button type="submit">Sign In</button>
-            <button type="button" onClick={() => signIn("google", { callbackUrl: "/profile" })}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2" style={{marginBottom:'3rem'}}>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required style={{height:'2.5rem', fontSize:'1.1rem', borderRadius:'0.7rem', paddingLeft:'0.4rem', marginBottom:'0.5rem'}} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required style={{height:'2.5rem', fontSize:'1.1rem', borderRadius:'0.7rem', paddingLeft:'0.4rem', marginBottom:'0.5rem'}} />
+            <button type="submit" style={{height:'2.5rem', fontSize:'1.1rem', borderRadius:'1.5rem', marginBottom:'0.5rem', cursor:'pointer'}}>Sign In</button>
+
+            {/* OAuth btns... */}
+            <h2 style={{marginTop:'2rem'}}>Login (OAuth)</h2>
+            <button type="button" onClick={() => signIn("google", { callbackUrl: "/profile" })} style={{height:'2.5rem', fontSize:'1.1rem', borderRadius:'1.5rem', marginBottom:'0.5rem', cursor:'pointer'}}>
                 Sign In with Google
             </button>
         </form>
