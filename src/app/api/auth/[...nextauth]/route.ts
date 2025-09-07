@@ -3,105 +3,150 @@ import NextAuth from "next-auth";
 import type { NextAuthOptions, Session, User as NextAuthUser } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectDB } from "@/lib/mongodb";
-import UserModel, { IUser } from "@/models/User";
-import bcrypt from "bcrypt";
+import { connectDB } from "@/lib/dbConnect";
+import UserModel from "@/models/User";
+import bcrypt from 'bcryptjs';
 
-// custom token that extends next-auth JWT
+
+// Extend JWT token structure
 interface CustomToken extends JWT {
-    id?: string;
+    _id?: string;
+    username?: string;
+    is_verified?: boolean;
 }
 
-// Custom session shape (add id to user)
+// Extend session user structure
 interface CustomSession extends Session {
-    user: Session["user"] & { id?: string };
-}
-
-// Helper to map mongoose user doc -> NextAuth user object
-function toNextAuthUser(userDoc: IUser): NextAuthUser {
-    return {
-        id: (userDoc._id as unknown as { toString(): string }).toString() ?? undefined,
-        name: userDoc.name ?? undefined,
-        email: userDoc.email ?? undefined,
+    user: Session["user"] & {
+        _id?: string;
+        username?: string;
+        is_verified?: boolean;
     };
 }
 
 export const authOptions: NextAuthOptions = {
     providers: [
+        // Google OAuth
         GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID as string,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         }),
+
+        // GitHub OAuth
+        GitHubProvider({
+            clientId: process.env.LOCALHOST_GITHUB_CLIENT_ID!,
+            clientSecret: process.env.LOCALHOST_GITHUB_CLIENT_SECRET!,
+        }),
+
+        // Credentials Provider (username/email login)
         CredentialsProvider({
             name: "Credentials",
             credentials: {
-                email: { label: "Email", type: "text" },
+                email: { label: "Email or Username", type: "text" },
                 password: { label: "Password", type: "password" },
             },
-            // authorize MUST return a plain NextAuth user or null
-            async authorize(credentials, req): Promise<NextAuthUser | null> {
-                if (!credentials?.email || !credentials?.password) return null;
-
+            // This `authorize()` function is called when u call 'signIn()'...
+            async authorize(credentials): Promise<NextAuthUser | null> {
                 await connectDB();
 
-                // use `.lean()` to get plain object OR get doc and map fields
-                const userDoc = await UserModel.findOne({ email: credentials.email }).exec();
-                if (!userDoc) return null;
+                const identifier = credentials?.email;
+                const plainPassword = credentials?.password;
 
-                // ensure password exists (credentials users should have hashed password)
-                if (!userDoc.password) return null;
+                if (!identifier || !plainPassword) return null;
 
-                const isValid = await bcrypt.compare(credentials.password, userDoc.password);
-                if (!isValid) return null;
+                // Find by email or username
+                const user = await UserModel.findOne({
+                    $or: [{ email: identifier }, { username: identifier }],
+                });
 
-                // return plain NextAuth user object (NOT a mongoose document)
-                return toNextAuthUser(userDoc);
+                if (!user) throw new Error("User not found");
+                if (!user.is_verified) throw new Error("Account not verified, Please Re-SignUp to Verify your Email!");
+
+                // Dynamic `password` checks to avoid mismatches/issues b/w OAuth users && Manual LogIn users...
+                if (user.is_from_oauth) {     // If 'user' was logged-in via 'OAuth' previously, And now he came up with manual Login...
+                    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+                    await UserModel.findByIdAndUpdate(
+                        user._id,
+                        {
+                            password: hashedPassword,
+                            is_from_oauth: false,
+                        },
+                        {
+                            new: true,               // return updated document
+                            runValidators: true,     // ensure schema validation is enforced
+                            context: 'query',        // required for some Mongoose validators to work correctly
+                        }
+                    );
+                }
+                else if (!user.password) {    // If user is not from 'OAuth', And 'password' is not found...
+                    throw new Error("No password set");
+                }
+                else {
+                    const isPasswordValid = await user.comparePassword(plainPassword);
+                    if (!isPasswordValid) throw new Error("Invalid password");
+                }
+
+                return {
+                    id: (user as { _id: { toString(): string } })._id.toString(),
+                    name: user.username,
+                    email: user.email,
+                };
             },
         }),
     ],
+
+    // Session & JWT callbacks
     callbacks: {
-        // token callback: add id from user to token
-        async jwt({ token, user }): Promise<CustomToken> {
-            const t = token as CustomToken;
-            // when user signs in (initial sign in), 'user' is present
+        async jwt({ token, user }) {
             if (user) {
-                // user.id should exist because authorize/adapter provided it
-                t.id = (user as NextAuthUser).id;
+                const dbUser = await UserModel.findOne({ email: user.email });
+                token._id = (dbUser as { _id: { toString(): string } })._id.toString();
+                token.username = dbUser?.username;
+                token.is_verified = dbUser?.is_verified;
+                // console.log("JWT Token: ", token);
             }
-            return t;
+            return token as CustomToken;
         },
 
-        // session callback: add id from token to session.user.id
-        async session({ session, token }): Promise<CustomSession> {
-            const s = session as CustomSession;
-            const t = token as CustomToken;
-            if (t.id) s.user.id = t.id;
-            return s;
+        async session({ session, token }) {
+            const customSession = session as CustomSession;
+            customSession.user._id = typeof token._id === "string" ? token._id : undefined;
+            customSession.user.username = typeof token.username === "string" ? token.username : undefined;
+            customSession.user.is_verified = typeof token.is_verified === "boolean" ? token.is_verified : undefined;
+            // console.log("Session: ", session);
+            return customSession;
         },
-
-        // signIn callback: ensure OAuth users are saved to DB
+        // Save OAuth users to DB if not present
         async signIn({ user }) {
-            // user here is the NextAuth User object returned by provider
             await connectDB();
-
             if (!user?.email) return false;
 
-            // if the user already exists, do nothing
-            const existing = await UserModel.findOne({ email: user.email }).exec();
-            if (!existing) {
-                // create new DB record for OAuth user (no password)
+            const exists = await UserModel.findOne({ email: user.email });
+            if (!exists) {
                 await UserModel.create({
                     email: user.email,
-                    name: user.name,
+                    username: user.name?.split(" ").join("_").toLowerCase() || "user",
+                    is_from_oauth: true,
+                    is_verified: true, // You can choose to mark OAuth-users as verified
                 });
             }
             return true;
         },
     },
-    session: { strategy: "jwt" },
-    secret: process.env.NEXTAUTH_SECRET,
+
+    pages: {
+        signIn: "/login", // Redirects to Custom `/login` page, If any Error occurs in the manual sign-in flow...
+    },
+
+    session: {
+        strategy: "jwt",
+    },
+
+    secret: process.env.JWT_SECRET,
 };
+
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
