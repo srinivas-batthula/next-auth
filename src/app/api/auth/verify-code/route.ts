@@ -12,7 +12,10 @@ export async function POST(request: Request) {
         const decodedUsername = decodeURIComponent(username);
         //find user from db
         const user = await UserModel.findOne({
-            username: decodedUsername,
+            $or: [
+                { username: decodedUsername },
+                { email: decodedUsername }
+            ]
         });
 
         if (!user) {
@@ -35,7 +38,8 @@ export async function POST(request: Request) {
 
             return Response.json({
                 success: true,
-                message: "User verified successfully"
+                message: "User verified successfully",
+                username: user.username
             }, {
                 status: 200
             });

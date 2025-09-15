@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 
 
 export default function Verify() {
     const router = useRouter();
     const params = useParams();
-    const username = params.username as string;
+    const username = params.username as string; // username / email...
+    const searchParams = useSearchParams();
+    const q = searchParams.get('q');  // Will be 'forgotPassword' if URL is `/verify-email/${email}?q=forgotPassword`...
+
     const [otp, setOTP] = useState("");
     const [status, setStatus] = useState(false);
     const [msg, setMsg] = useState("");
@@ -23,14 +26,22 @@ export default function Verify() {
                 method: 'POST',
                 body: JSON.stringify({ username, code: otp }),
             });
-
             const data = await res.json();
             setStatus(data.success);
             setMsg(data?.msg);
+
             if (res.ok && data.success) {
-                setTimeout(() => {
-                    router.push('/login');
-                }, 2000);
+                if (q && q === 'forgotPassword') {
+                    setMsg('Redirecting to `/forgot-password` page...');
+                    setTimeout(() => {
+                        router.push(`/forgot-password/${username}`);
+                    }, 2000);
+                }
+                else {
+                    setTimeout(() => {
+                        router.push('/login');
+                    }, 2000);
+                }
             }
         }
         catch (err) {
@@ -44,7 +55,6 @@ export default function Verify() {
             <input value={otp} onChange={(e) => setOTP(e.target.value)} placeholder="Enter your 6-digit OTP..." required style={{ height: '2.5rem', fontSize: '1.1rem', borderRadius: '0.7rem', paddingLeft: '0.4rem', marginBottom: '0.5rem' }} />
             <button type="submit" style={{ height: '2.5rem', fontSize: '1.1rem', borderRadius: '1.5rem', marginBottom: '0.5rem', cursor: 'pointer' }}>Verify</button>
 
-            {/* OAuth btns... */}
             <h3 style={{ marginTop: '2rem', color: (status) ? 'green' : 'red' }}>{msg}</h3>
         </form>
     );

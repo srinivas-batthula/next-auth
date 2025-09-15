@@ -24,6 +24,29 @@ export default function SignInForm() {
         }
     };
 
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+
+        if (!email || email.length === 0 || email === '') {   // 'email' Check...
+            setError('Email is required for `Forgot-Password`!');
+            return;
+        }
+
+        const resp = await fetch('/api/auth/sendEmail', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+        const res = await resp.json();
+
+        if (resp.ok && res.success) {
+            router.push(`/verify-email/${email}?q=forgotPassword`); // manually redirect on success
+        }
+        else {
+            setError(res?.message || "Failed to send email!");
+        }
+    };
+
     return (
         <>
             <div>
@@ -35,6 +58,9 @@ export default function SignInForm() {
                 <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email or Username..." required style={{ height: '2.5rem', fontSize: '1.1rem', borderRadius: '0.7rem', paddingLeft: '0.4rem', marginBottom: '0.5rem' }} />
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required style={{ height: '2.5rem', fontSize: '1.1rem', borderRadius: '0.7rem', paddingLeft: '0.4rem', marginBottom: '0.5rem' }} />
                 <button type="submit" style={{ height: '2.5rem', fontSize: '1.1rem', borderRadius: '1.5rem', marginBottom: '0.5rem', cursor: 'pointer' }}>Sign In</button>
+
+                {/* Forgot Password Btn... */}
+                <button type="button" onClick={(e) => handleForgotPassword(e)} style={{ height: '2.5rem', fontSize: '1.1rem', borderRadius: '1.5rem', marginBottom: '0.5rem', marginTop: '0.5rem', cursor: 'pointer' }}>Forgot Password</button>
 
                 {/* OAuth btns... */}
                 <h2 style={{ marginTop: '2rem' }}>Login (OAuth)</h2>
