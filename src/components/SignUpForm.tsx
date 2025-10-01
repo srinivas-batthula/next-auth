@@ -19,7 +19,7 @@ export default function SignUpForm() {
 
         if (res.ok && data.success) {
             setTimeout(() => {
-                router.push(`/verify-email/${form.username}`);
+                router.push(`${process.env.NEXT_PUBLIC_HOME}/login`);
                 setForm({ username: '', email: '', password: '' });
             }, 2000);
         }

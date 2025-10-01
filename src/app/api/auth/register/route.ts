@@ -1,12 +1,14 @@
 // src/app/api/auth/register/route.ts
 import { connectDB } from '@/lib/dbConnect';
 import UserModel from '@/models/User';
+import Token from '@/models/Tokens';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendVerificationEmail } from '@/helpers/sendVerificationEmail';
+import { generateResetToken } from '@/helpers/generateToken';
 
 /*
     If 'username' & 'email' not found, Creates new User...
-    Or Else If 'email' found, But not verified,, then it sends OTP to email for verification...
+    Or Else If 'email' found, But not verified,, then it sends Link to email for verification...
 */
 export async function POST(request: NextRequest) {
     await connectDB();
@@ -29,14 +31,13 @@ export async function POST(request: NextRequest) {
                 },
             );
         }
+        let finalUser;
 
         // If 'user' is new  OR  If any Old 'user' but Not-Verified...
         const existingUserByEmail = await UserModel.findOne({
             email
         })
 
-        //generate verify-code
-        const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
         if (existingUserByEmail) {
             //if verified return
             if (existingUserByEmail.is_verified) {
@@ -46,27 +47,32 @@ export async function POST(request: NextRequest) {
                 }, {
                     status: 400
                 })
-            } else {
-                // Account / User is existed but Not-Verified...
-                existingUserByEmail.password = password;
-                existingUserByEmail.otp = verifyCode;
-                existingUserByEmail.otp_expiry = new Date(Date.now() + 3600000);    // OTP-expiry -> 1hr...
-                await existingUserByEmail.save();
             }
+            finalUser = existingUserByEmail;
         } else {
             // New User creation...
             const newUser = new UserModel({     //store user in db
                 username,
                 email,
-                password,
-                otp: verifyCode,
-                otp_expiry: new Date(Date.now() + 3600000),    // OTP-expiry -> 1hr...
+                password
             });
             await newUser.save();
+            finalUser = newUser;
         }
 
-        //send verification code 
-        const emailResponse = await sendVerificationEmail(email, username, verifyCode);
+        // Remove all previous-tokens for this user...
+        await Token.deleteMany({ userId: finalUser._id });
+
+        // Generate crypto-token...
+        const { rawToken, tokenHash } = generateResetToken();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);    // 'Token' is valid for only 15-mins...
+        await Token.create({ userId: finalUser._id, tokenHash, expiresAt });
+
+        // Generating 'magic-link' with `token` to send in Email to user...
+        const verifyUrl = `${process.env.NEXT_PUBLIC_HOME}/api/auth/verify-email?token=${rawToken}`;
+
+        //send verification link 
+        const emailResponse = await sendVerificationEmail(email, username, verifyUrl);
 
         if (!emailResponse.success) {
             return NextResponse.json({
@@ -79,12 +85,10 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: 'User Registered Successfully, Please Verify Your Email!'
+            message: 'User Registered Successfully, Please Verify Your `Email` to Login!'
         }, {
             status: 201
         });
-
-
     } catch (error) {
         // console.error('Error Registering user', error);
         return NextResponse.json(

@@ -10,6 +10,7 @@ export default function SignInForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,7 +18,12 @@ export default function SignInForm() {
         const res = await signIn("credentials", { email, password, redirect: false, callbackUrl: "/profile" });
 
         if (res?.ok && res.url) {
-            router.push(res.url); // manually redirect on success
+            setSuccess("Login SUccessful!");
+            setTimeout(() => {
+                if (res.url) {
+                    router.push(res.url); // manually redirect on success
+                }
+            }, 2000);
         }
         else {
             setError(res?.error || "Login failed!");
@@ -33,14 +39,17 @@ export default function SignInForm() {
             return;
         }
 
-        const resp = await fetch('/api/auth/sendEmail', {
+        const resp = await fetch('/api/auth/forgot-password', {
             method: 'POST',
             body: JSON.stringify({ email })
         });
         const res = await resp.json();
 
         if (resp.ok && res.success) {
-            router.push(`/verify-email/${email}?q=forgotPassword`); // manually redirect on success
+            setSuccess(res.message);
+            setTimeout(() => {
+                router.push(`${process.env.NEXT_PUBLIC_HOME}/login`); // manually redirect on success
+            }, 2000);
         }
         else {
             setError(res?.message || "Failed to send email!");
@@ -52,6 +61,8 @@ export default function SignInForm() {
             <div>
                 <h3>Error : </h3>
                 <p style={{ color: 'red' }}>{error === "CredentialsSignin" ? "Invalid credentials" : error}</p>
+                <h3>Success : </h3>
+                <p style={{ color: 'green' }}>{success}</p>
             </div>
             <br />
             <form onSubmit={handleSubmit} className="flex flex-col gap-2" style={{ marginBottom: '3rem' }}>

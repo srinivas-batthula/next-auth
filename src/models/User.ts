@@ -8,8 +8,6 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     is_verified: boolean;
-    otp?: string;
-    otp_expiry?: Date;
     is_from_oauth: boolean;
 
     comparePassword(candidate: string): Promise<boolean>;
@@ -20,11 +18,9 @@ const userSchema = new Schema<IUser>(
         username: { type: String, required: [true, 'Username is required!'], unique: true, trim: true },
         email: { type: String, required: [true, 'Email is required!'], unique: true, match: [/[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/g, 'please use a Valid Email Address!'] },
         password: { type: String, default: null },
+        
         is_from_oauth: { type: Boolean, default: false }, // Set to `TRUE` If the 'user' is logged-In via 'OAuth' like Google...
-
         is_verified: { type: Boolean, default: false }, // Email Verified via OTP...
-        otp: { type: String },
-        otp_expiry: { type: Date },
     },
     { timestamps: true }
 );
