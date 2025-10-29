@@ -1,7 +1,5 @@
 # 🔐 NextAuth with **magic-links** Email flow + 🤖 AI Models Integration
 
-- [Live Demo](https://s.vercel.app)
-
 A minimal **Next.js 14 (App Router)** project featuring:
 
 - **NextAuth.js** for authentication (Google & GitHub OAuth + Manual Credentials Login / Register).
