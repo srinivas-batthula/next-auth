@@ -9,7 +9,7 @@ type Provider = typeof PROVIDERS[number];
 const models: Record<Provider, string> = {                            // Models used in each Provider...
     huggingFace: 'distilbert-base-uncased',
     openRouter: 'mistralai/mistral-7b-instruct',
-    Gemini: 'gemini-1.5-flash',
+    Gemini: 'gemini-1.5-flash', 
     sambaNova: 'DeepSeek-R1-0528',
     groqCloud: 'openai/gpt-oss-20b'
 }
