@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Provider, models, PROVIDERS } from "../api/ai/route";
+
+
+const PROVIDERS = ['huggingFace', 'openRouter', 'Gemini', 'sambaNova', 'groqCloud'] as const;
+type Provider = typeof PROVIDERS[number];
+
+const models: Record<Provider, string> = {                            // Models used in each Provider...
+    huggingFace: 'distilbert-base-uncased',
+    openRouter: 'mistralai/mistral-7b-instruct',
+    Gemini: 'gemini-1.5-flash',
+    sambaNova: 'DeepSeek-R1-0528',
+    groqCloud: 'openai/gpt-oss-20b'
+}
 
 interface Message {
     role: "user" | "bot";

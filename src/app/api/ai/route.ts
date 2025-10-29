@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 
 
-export const PROVIDERS = ['huggingFace', 'openRouter', 'Gemini', 'sambaNova', 'groqCloud'] as const;
-export type Provider = typeof PROVIDERS[number];
+const PROVIDERS = ['huggingFace', 'openRouter', 'Gemini', 'sambaNova', 'groqCloud'] as const;
+type Provider = typeof PROVIDERS[number];
 
-export const models: Record<Provider, string> = {                            // Models used in each Provider...
+const models: Record<Provider, string> = {                            // Models used in each Provider...
     huggingFace: 'distilbert-base-uncased',
     openRouter: 'mistralai/mistral-7b-instruct',
     Gemini: 'gemini-1.5-flash',
