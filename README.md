@@ -1,9 +1,12 @@
 # 🔐 NextAuth with **magic-links** Email flow + 🤖 AI Models Integration
 
+- [Live Demo](https://s.vercel.app)
+
 A minimal **Next.js 14 (App Router)** project featuring:
 
 - **NextAuth.js** for authentication (Google & GitHub OAuth + Manual Credentials Login / Register).
-- **Verify-Email & Forgot-Password** with email's magic-links flow.
+- **Verify-Email & Forgot-Password** with email's magic-links && SSE flow.
+- **SSE events** implementation at `/api/events` page.
 - **AI Model Integrations** with **Gemini**, **OpenRouter**, **Hugging Face**, **Groq Cloud**, **SambNova** (easily swappable).
 - A simple **Chat UI** to test multiple AI models.
 
@@ -14,11 +17,13 @@ A minimal **Next.js 14 (App Router)** project featuring:
 ```
 request sent to '/api/auth/register' API with payload as { name, email, password }
       ⬇
-/register -> Creates a new user in DB & Sends an 'Email' to user with 'magic-link' for 'Email-Verification'
+/register -> Creates a new user in DB & Sends an 'Email' to user with 'magic-link' for 'Email-Verification' & redirects to `/success` page
+      ⬇
+/success?email=<email> -> Opens an 'SSE EventStream' connection via the `client's email` with backend API to receive instant updates
       ⬇
 When user Opens/Clicks 'magic-link' in Email -> Then it requests to '/api/auth/verify-email?token=<token>'
       ⬇
-Then /verify-email -> Verify's the 'token' & Responds with the HTML page (like Success / Failure page)
+Then /verify-email -> Verify's the 'token' & Responds with the HTML page (like Success / Failure page) & If success, then it Broadcasts an SSE-event to all connected clients of that specific` user's email`
       ⬇
 Now Email Verification is done, User can 'Login' Now...
 ```

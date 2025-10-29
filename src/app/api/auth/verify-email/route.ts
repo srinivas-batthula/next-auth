@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/dbConnect";
 import Token from "@/models/Tokens";
 import User from "@/models/User";
 import crypto from "crypto";
+import { broadcast } from "@/lib/sseClients";
 
 // URL-format ==> `/api/auth/verify-email?token=<token>`...
 export async function GET(req: Request) {
@@ -52,6 +53,9 @@ export async function GET(req: Request) {
         user.is_verified = true;
         await user.save();
         await Token.findByIdAndDelete(found._id);
+
+        //#*#*#*#*#*#    Broadcast 'verification-event (SSE)' to all clients of that specific user’s email...    #*#*#*#*#*#//
+        broadcast(user.email, { type: "EMAIL_VERIFIED", email: user.email });
 
         // Return success HTML with JS-based client redirect
         return new NextResponse(helper('success', "Email Verified! Redirecting to Sign-In..."), {
