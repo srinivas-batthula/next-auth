@@ -1,12 +1,10 @@
 // src/app/api/auth/register/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from "crypto";
 import { connectDB } from '@/lib/dbConnect';
 import UserModel from '@/models/User';
 import Token from '@/models/Tokens';
+import { NextRequest, NextResponse } from 'next/server';
 import { sendVerificationEmail } from '@/helpers/sendVerificationEmail';
 import { generateResetToken } from '@/helpers/generateToken';
-import { registerClient } from "@/lib/sseClients";
 
 /*
     If 'username' & 'email' not found, Creates new User...
@@ -104,32 +102,3 @@ export async function POST(request: NextRequest) {
         );
     }
 };
-
-// To register a new client with a unique `id` for SSE events...
-export async function GET(req: Request) {
-    const url = new URL(req.url);
-    const email = url.searchParams.get("email");
-    if (!email) {
-        return new Response("Email is required in query-param!", { status: 400 });
-    }
-
-    const id = crypto.randomUUID(); // Each SSE client gets a unique id
-
-    const stream = new ReadableStream({
-        start(controller) {
-            const send = (chunk: string) => controller.enqueue(chunk);  // helper
-
-            registerClient(id, email, send, req.signal);   // Register client with email in 'global store'...
-
-            send(`data: ${JSON.stringify({ type: "SSE-connected", email })}\n\n`); // Initial welcome event
-        },
-    });
-
-    return new Response(stream, {   // Return SSE response headers to upgrade from 'HTTP to EventStream'...
-        headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        },
-    });
-}
