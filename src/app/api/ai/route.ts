@@ -4,7 +4,7 @@ import axios from "axios";
 
 
 const PROVIDERS = ['huggingFace', 'openRouter', 'Gemini', 'sambaNova', 'groqCloud'] as const;
-type Provider = typeof PROVIDERS[number];
+type Provider = typeof PROVIDERS[number]; 
 
 const models: Record<Provider, string> = {                            // Models used in each Provider...
     huggingFace: 'distilbert-base-uncased',
